@@ -29,7 +29,7 @@
         private void InitializeComponent()
         {
             this.labelScore = new System.Windows.Forms.Label();
-            this.labelFood = new System.Windows.Forms.Label();
+
             this.SuspendLayout();
             // 
             // labelScore
@@ -40,21 +40,11 @@
             this.labelScore.Size = new System.Drawing.Size(98, 21);
             this.labelScore.TabIndex = 0;
             this.labelScore.Text = "Score: 0";
-            // 
-            // labelFood
-            // 
-            this.labelFood.BackColor = System.Drawing.Color.Red;
-            this.labelFood.Location = new System.Drawing.Point(395, 207);
-            this.labelFood.Name = "labelFood";
-            this.labelFood.Size = new System.Drawing.Size(21, 21);
-            this.labelFood.TabIndex = 1;
-            // 
             // SnakeForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(11F, 21F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1000, 500);
-            this.Controls.Add(this.labelFood);
             this.Controls.Add(this.labelScore);
             this.Font = new System.Drawing.Font("Courier New", 14.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
@@ -62,7 +52,6 @@
             this.Name = "SnakeForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Form1";
-            this.Load += new System.EventHandler(this.Form1_Load);
             this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.SnakeForm_KeyDown);
             this.ResumeLayout(false);
             this.PerformLayout();
@@ -72,7 +61,6 @@
         #endregion
 
         private System.Windows.Forms.Label labelScore;
-        private System.Windows.Forms.Label labelFood;
     }
 }
 

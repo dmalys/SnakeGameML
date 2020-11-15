@@ -3,6 +3,7 @@ using SnakeGameML.Models;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace SnakeGameML
@@ -12,7 +13,10 @@ namespace SnakeGameML
         int cols = 50, rows = 25, score = 0, dx = 0, dy = 0, front = 0, back = 0;
         SnakePiece[] snake = new SnakePiece[1250];
         List<int> available = new List<int>();
+        List<FoodPiece> foodPieces = new List<FoodPiece>();
         bool[,] visit;
+        private const int MAX_FOOD_NUMBER = 20;
+        private const int PROBABILITY_OF_GOOD_FOOD = 60;
 
         Random rand = new Random();
         Timer timer = new Timer();
@@ -43,9 +47,9 @@ namespace SnakeGameML
                 return;
             }
 
-            if(CollisionFood(x + dx, y + dy))
+            if(CollisionFood(x + dx, y + dy, out int scoreValue))
             {
-                score += 1;
+                score += scoreValue;
                 labelScore.Text = "Score: " + score.ToString();
                 if (Hits((y + dy) / SnakePiece.SideSize, (x + dx) / SnakePiece.SideSize))
                     return;
@@ -67,9 +71,7 @@ namespace SnakeGameML
                 snake[front].Location = new Point(x + dx, y + dy);
                 back = (back - 1 + 1250) % 1250;
                 visit[(y + dy) / SnakePiece.SideSize, (x + dx) / SnakePiece.SideSize] = true;
-
             }
-            
         }
 
         //TO USE AFTER ML TRANSITION
@@ -115,26 +117,33 @@ namespace SnakeGameML
 
         private void RandomFood()
         {
-            int numberOfFood = 3;
+            //do not add if more food than max number
+            if (MAX_FOOD_NUMBER < foodPieces.Count)
+                return;
 
-            available.Clear();
-            while (numberOfFood != 0)
+            int numberOfFood = rand.Next(1, 4);
+            
+            for (int e = 0; e < numberOfFood; e++)
             {
-                for (int i = 0; i < rows; i++)
-                {
-                    for (int j = 0; j < cols; j++)
-                    {
-                        if (!visit[i, j])
-                            available.Add(i * cols + j);//what if 0?
-                        int idx = rand.Next(available.Count) % available.Count;//throws if 0
-                        labelFood.Left = (available[idx] * SnakePiece.SideSize) % Width;
-                        labelFood.Top = (available[idx] * SnakePiece.SideSize) / Width * SnakePiece.SideSize;
-
-                        //if then return
-                        return;
-                    }
-                }
+                CreateFood();
             }
+        }
+
+        private void CreateFood()
+        {
+            var food = rand.Next(0, 101) < PROBABILITY_OF_GOOD_FOOD ? (FoodPiece)new GoodFood(this.Controls) : new BadFood(this.Controls);
+            var i = rand.Next(rows);
+            var j = rand.Next(cols);
+            var idx = i * cols + j;
+            if (!visit[i, j] && !available.Contains(idx))
+                available.Add(idx);
+            
+            food.foodLabel.Left = (available.IndexOf(idx) * SnakePiece.SideSize) % Width;
+            food.foodLabel.Top = (available.IndexOf(idx) * SnakePiece.SideSize) / Width * SnakePiece.SideSize;
+
+            foodPieces.Add(food);
+
+            return;
         }
 
         private bool Hits(int x, int y)
@@ -148,9 +157,21 @@ namespace SnakeGameML
             return false;
         }
 
-        private bool CollisionFood(int x, int y)
+        private bool CollisionFood(int x, int y, out int scoreValue)
         {
-            return x == labelFood.Location.X && y == labelFood.Location.Y;
+            scoreValue = default;
+            if (foodPieces.Any(f => x == f.foodLabel.Location.X && y == f.foodLabel.Location.Y))
+            {
+                var hitFoodPiece = foodPieces.Where(f => x == f.foodLabel.Location.X && y == f.foodLabel.Location.Y).Select(p => p).FirstOrDefault();
+                scoreValue = hitFoodPiece.scoreValue;
+
+                //Remove food piece as it was hit
+                foodPieces.Remove(hitFoodPiece);
+                available.Remove(hitFoodPiece.foodLabel.Location.Y / SnakePiece.SideSize * cols + hitFoodPiece.foodLabel.Location.X / SnakePiece.SideSize);
+                Controls.Remove(hitFoodPiece.foodLabel);
+                return true;
+            }
+            return false;
         }
 
         private bool GameOver(int x, int y)
@@ -162,7 +183,7 @@ namespace SnakeGameML
         {
             visit = new bool[rows, cols];
             SnakePiece head = new SnakePiece((rand.Next() % cols) * SnakePiece.SideSize, (rand.Next() % rows) * SnakePiece.SideSize);
-            labelFood.Location = new Point((rand.Next() % cols) * SnakePiece.SideSize, (rand.Next() % rows) * SnakePiece.SideSize);
+
             for (int i = 0; i < rows; i++)
             {
                 for (int j = 0; j < cols; j++)
@@ -171,15 +192,12 @@ namespace SnakeGameML
                     available.Add(i * cols + j);
                 }
             }
+
+            RandomFood();
             visit[head.Location.Y / SnakePiece.SideSize, head.Location.X / SnakePiece.SideSize] = true;
             available.Remove(head.Location.Y / SnakePiece.SideSize * cols + head.Location.X / SnakePiece.SideSize);
             Controls.Add(head);
             snake[front] = head;
-        }
-
-        private void Form1_Load(object sender, EventArgs e)
-        {
-
         }
     }
 }

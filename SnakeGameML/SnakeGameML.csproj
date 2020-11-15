@@ -53,6 +53,9 @@
       <DependentUpon>SnakeForm.cs</DependentUpon>
     </Compile>
     <Compile Include="Interfaces\MovementPath.cs" />
+    <Compile Include="Models\BadFood.cs" />
+    <Compile Include="Models\FoodPiece.cs" />
+    <Compile Include="Models\GoodFood.cs" />
     <Compile Include="Models\SnakePiece.cs">
       <SubType>Component</SubType>
     </Compile>
