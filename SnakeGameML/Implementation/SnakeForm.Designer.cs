@@ -1,4 +1,4 @@
-﻿namespace SnakeGameML
+﻿namespace SnakeGameML.Implementation
 {
     partial class SnakeForm
     {

@@ -5,11 +5,11 @@ namespace SnakeGameML.Models
 {
     public class SnakePiece : Label
     {
-        public static int SideSize = 20;
+        public static int SidePixelSize = 20;
         public SnakePiece(int x, int y)
         {
             Location = new Point(x, y);
-            Size = new Size(SideSize, SideSize);
+            Size = new Size(SidePixelSize, SidePixelSize);
             BackColor = Color.Orange;
             Enabled = false;
         }
