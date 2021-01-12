@@ -33,9 +33,7 @@ namespace SnakeGameML.Implementation
         {
             _timeInterval = 100;
             _collector = new TrainingDataCollector(@"C:\Users\mikim\Desktop\danetreningowe.txt"); //TODO: temporary
-
-
-
+            
             InitializeComponent();
             Initialize();
             LaunchTimer();
@@ -250,9 +248,7 @@ namespace SnakeGameML.Implementation
             var i = _rand.Next(_rows);
             var j = _rand.Next(_columns);
             var idx = i * _columns + j;
-
-            //TODO: posibility that all generated food will be snake - dead end ?
-
+            
             // If visted 
             if(_visit[i,j] == true)
             {
@@ -322,6 +318,14 @@ namespace SnakeGameML.Implementation
             return false;
         }
 
+        private double DistanceToClosestFood()
+        {
+            var snakeHead = _snake[_front];
+            var closestFood = _foodPieces.OrderBy(f => Math.Sqrt((Math.Pow(snakeHead.Location.X - f.foodLabel.Location.X, 2) + Math.Pow(snakeHead.Location.Y - f.foodLabel.Location.Y, 2)))).First();
+            var distance = Math.Sqrt((Math.Pow(snakeHead.Location.X - closestFood.foodLabel.Location.X, 2) + Math.Pow(snakeHead.Location.Y - closestFood.foodLabel.Location.Y, 2)));
+            return distance;
+        }
+        
         private bool IsOverBoard(int x, int y)
         {
             return x < 0 || y < 0 || x > 980 || y > 480;
@@ -422,7 +426,7 @@ namespace SnakeGameML.Implementation
                     return 0;
                 }
             }
-            throw new InvalidOperationException("WTF");
+            throw new InvalidOperationException("Strange obstacle occured.");
         }
 
         private double isObstacleOnRight()
@@ -492,7 +496,7 @@ namespace SnakeGameML.Implementation
                     return 0;
                 }
             }
-            throw new InvalidOperationException("WTF");
+            throw new InvalidOperationException("Strange obstacle occured.");
         }
 
         private double isObstacleOnLeft()
@@ -562,10 +566,10 @@ namespace SnakeGameML.Implementation
                     return 0;
                 }
             }
-            throw new InvalidOperationException("WTF");
+            throw new InvalidOperationException("Strange obstacle occured.");
         }
 
-        private void CommitTrenningData(bool stillAlive)
+        private void CommitTrainingData(bool stillAlive)
         {
             int suggestedDirection = 0;
 
@@ -579,7 +583,7 @@ namespace SnakeGameML.Implementation
                 case Steering.right:
                     suggestedDirection = 1;
                     break;
-                default: throw new InvalidOperationException("WTF");
+                default: throw new InvalidOperationException("Commiting training data failed.");
             }
 
 
