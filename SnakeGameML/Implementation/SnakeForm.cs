@@ -21,8 +21,8 @@ namespace SnakeGameML.Implementation
         private bool _started;
         private Steering _steering;
 
-        private const int MAX_FOOD_NUMBER = 5;
-        private const int PROBABILITY_OF_GOOD_FOOD = 60;
+        private const int MAX_FOOD_NUMBER = 1;
+        private const int PROBABILITY_OF_GOOD_FOOD = 100;
 
         private readonly int _columns = 50, _rows = 25;
         private readonly int _timeInterval;
@@ -32,7 +32,8 @@ namespace SnakeGameML.Implementation
         public SnakeForm()
         {
             _timeInterval = 100;
-            _collector = new TrainingDataCollector(@"C:\Users\mikim\Desktop\danetreningowe.txt"); //TODO: temporary
+            _collector = new TrainingDataCollector(@"C:\Users\Damian\Desktop\SnakeGameML\SnakeGameML\danetreningowe.txt"); //TODO: temporary
+
             
             InitializeComponent();
             Initialize();
@@ -41,6 +42,8 @@ namespace SnakeGameML.Implementation
 
         public SnakeForm(ISnakeController snakeController, TrainingDataCollector collector, int timeInterval = 100)
         {
+
+            _steering = Steering.stay;
             _timeInterval = timeInterval;
             _snakeController = snakeController;
             _collector = collector;
@@ -60,6 +63,8 @@ namespace SnakeGameML.Implementation
 
         private void MoveTimer(object sender, EventArgs e)
         {
+            //_steering = Steering.stay;
+
             //automated control
             if (_snakeController != null)
             {
@@ -68,7 +73,16 @@ namespace SnakeGameML.Implementation
                     SnakeForm_KeyDown(null, new KeyEventArgs(Keys.Right));
                 }
 
-                _steering = _snakeController.MakeMove();
+                _steering = _snakeController.MakeMove(new SteeringInput()
+                {
+                    obstacleOnFront = isObstacleOnFront(),
+                    obstacleOnLeft = isObstacleOnLeft(),
+                    obstacleOnRight = isObstacleOnRight(),
+                    angle = AngleToClosestFood(),
+                    //distance = DistanceToClosestFood(),
+                    //score = _score
+                });
+
                 if(_steering == Steering.right)
                 {
                     SnakeForm_KeyDown(null, new KeyEventArgs(Keys.Right));
@@ -89,15 +103,7 @@ namespace SnakeGameML.Implementation
             if(IsOverBoard(x + _dx, y + _dy))
             {
                 timer.Stop();
-                _collector.SaveRow(new InputRow()
-                {
-                    ObstacleOnFront = 1,
-                    ObstacleOnLeft = 1,
-                    ObstacleOnRight = 1,
-                    SuggestedDirection = 1,
-                    StillAlive = false,
-                    score = _score
-                });
+                CommitTrainingData(false);
 
                 this.Close();
                 this.Dispose();
@@ -109,7 +115,9 @@ namespace SnakeGameML.Implementation
             {
                 // TODO : Can we collide body on food area ?
                 if (HitsBody((y + _dy) / SnakePiece.SidePixelSize, (x + _dx) / SnakePiece.SidePixelSize))
+                {
                     return;
+                }
 
                 // Body growing
                 var head = new SnakePiece(x + _dx, y + _dy);
@@ -127,8 +135,10 @@ namespace SnakeGameML.Implementation
             else
             {
                 if (HitsBody((y + _dy) / SnakePiece.SidePixelSize, (x + _dx) / SnakePiece.SidePixelSize))
+                {
                     return;
-
+                }
+                
                 // Move body
                 _visit[_snake[_back].Location.Y / SnakePiece.SidePixelSize, _snake[_back].Location.X / SnakePiece.SidePixelSize] = false;
                 _front = (_front - 1 + 1250) % 1250;
@@ -137,15 +147,8 @@ namespace SnakeGameML.Implementation
                 _back = (_back - 1 + 1250) % 1250;
                 _visit[(y + _dy) / SnakePiece.SidePixelSize, (x + _dx) / SnakePiece.SidePixelSize] = true;
 
-                _collector.SaveRow(new InputRow()
-                {
-                    ObstacleOnFront = isObstacleOnFront(),
-                    ObstacleOnLeft = 1,
-                    ObstacleOnRight = 1,
-                    SuggestedDirection = 1,
-                    StillAlive = true,
-                    score = _score
-                });
+                CommitTrainingData(true);
+                _steering = Steering.stay;
             }
         }
 
@@ -163,6 +166,7 @@ namespace SnakeGameML.Implementation
             switch (e.KeyCode)
             {
                 case Keys.Right:
+                    _steering = Steering.right;
                     // Heading up
                     if (_dy == -SnakePiece.SidePixelSize)
                     {
@@ -194,6 +198,7 @@ namespace SnakeGameML.Implementation
                     //_dx = SnakePiece.SidePixelSize;
                     break;
                 case Keys.Left:
+                    _steering = Steering.left;
                     // Heading up
                     if (_dy == -SnakePiece.SidePixelSize)
                     {
@@ -230,16 +235,16 @@ namespace SnakeGameML.Implementation
         private void RandomFood()
         {
             //do not add food if more than max number exist already
-            if (MAX_FOOD_NUMBER < _foodPieces.Count)
+            if (MAX_FOOD_NUMBER <= _foodPieces.Count)
                 return;
 
             //how many food to generate?
-            int numberOfFood = _rand.Next(1, 4);
+            //int numberOfFood = _rand.Next(1, 4);
             
-            for (int e = 0; e < numberOfFood; e++)
-            {
+            //for (int e = 0; e < numberOfFood; e++)
+            //{
                 CreateFood();
-            }
+            //}
         }
 
         private void CreateFood()
@@ -281,15 +286,7 @@ namespace SnakeGameML.Implementation
             {
                 timer.Stop();
 
-                _collector.SaveRow(new InputRow()
-                {
-                    ObstacleOnFront = isObstacleOnFront(),
-                    ObstacleOnLeft = isObstacleOnLeft(),
-                    ObstacleOnRight = isObstacleOnRight(),
-                    SuggestedDirection = 1,
-                    StillAlive = true,
-                    score = _score
-                });
+                CommitTrainingData(false);
                 this.Close();
                 this.Dispose();
                 return true;
@@ -325,7 +322,58 @@ namespace SnakeGameML.Implementation
             var distance = Math.Sqrt((Math.Pow(snakeHead.Location.X - closestFood.foodLabel.Location.X, 2) + Math.Pow(snakeHead.Location.Y - closestFood.foodLabel.Location.Y, 2)));
             return distance;
         }
-        
+
+        private double AngleToClosestFood()
+        {
+            var snakeHead = _snake[_front];
+            var closestFood = _foodPieces.OrderBy(f => Math.Sqrt((Math.Pow(snakeHead.Location.X - f.foodLabel.Location.X, 2) + Math.Pow(snakeHead.Location.Y - f.foodLabel.Location.Y, 2)))).First();
+            var sx = snakeHead.Location.X;
+            var sy = snakeHead.Location.Y;
+            var fx = closestFood.foodLabel.Location.X;
+            var fy = closestFood.foodLabel.Location.Y;
+
+            var a = (double)(sy - fy);
+            var b = (double)(fx - fy);
+            if (b == 0.0) b = 0.00001;
+
+            var angleAlfa = Math.Atan(a / b);
+            double angleBeta = 0.0;
+            // Heading right
+            //heading up
+            if (_dy == -SnakePiece.SidePixelSize)
+                angleBeta = (Math.PI / 180.0) * 90.0;
+            // Heading right
+            else if (_dx == SnakePiece.SidePixelSize)
+            {
+                angleBeta = 0.0;
+            }
+            // Heading down
+            else if (_dy == SnakePiece.SidePixelSize)
+            {
+                angleBeta = (Math.PI / 180.0) * -90.0;
+            }
+            // Heading left
+            else if (_dx == -SnakePiece.SidePixelSize)
+            {
+                angleBeta = (Math.PI / 180.0) * 180.0;
+            }
+
+            var angleDelta = angleBeta - angleAlfa;
+
+            var alfaDegree = angleAlfa * 180 / Math.PI;
+            var betaDegree = angleBeta * 180 / Math.PI;
+            var deltaDegree = angleDelta * 180 / Math.PI;
+
+
+            var normalizedAngle = angleDelta / Math.PI;
+            if (normalizedAngle > 1.0) normalizedAngle = 1.0;
+            if (normalizedAngle < -1.0) normalizedAngle = -1.0;
+
+            //Returning negative because we measure angle from snake perspective
+            return normalizedAngle;
+        }
+
+
         private bool IsOverBoard(int x, int y)
         {
             return x < 0 || y < 0 || x > 980 || y > 480;
@@ -569,13 +617,14 @@ namespace SnakeGameML.Implementation
             throw new InvalidOperationException("Strange obstacle occured.");
         }
 
-        private void CommitTrainingData(bool stillAlive)
+        private void CommitTrainingData(bool isAlive)
         {
             int suggestedDirection = 0;
 
             switch (_steering)
             {
-                case Steering.left: suggestedDirection = -1;
+                case Steering.left:
+                    suggestedDirection = -1;
                     break;
                 case Steering.stay:
                     suggestedDirection = 0;
@@ -586,6 +635,24 @@ namespace SnakeGameML.Implementation
                 default: throw new InvalidOperationException("Commiting training data failed.");
             }
 
+            var angle = AngleToClosestFood();
+            double decision = 0.0;
+            if (isAlive == true)
+            {
+                if (Math.Abs(angle) < 0.3)
+                {
+                    decision = 1.0;
+                }
+                else
+                {
+                    decision = 0.0;
+                }
+            }
+            else
+            {
+                decision = -1.0;
+            }
+
 
             _collector.SaveRow(new InputRow()
             {
@@ -593,8 +660,8 @@ namespace SnakeGameML.Implementation
                 ObstacleOnLeft = isObstacleOnLeft(),
                 ObstacleOnRight = isObstacleOnRight(),
                 SuggestedDirection = suggestedDirection,
-                StillAlive = stillAlive,
-                score = _score
+                NormalizedAngle = angle,
+                Decision = decision
             });
         }
 

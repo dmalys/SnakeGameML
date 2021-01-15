@@ -34,7 +34,6 @@ namespace SnakeGameML.Implementation
             {
                 GameCounterLabel.Text = $"{i}/{games - 1}";
 
-
                 var snakeForm = new SnakeForm(new RandomSnakeController(), new TrainingDataCollector(OutputTextBox.Text), 30);
                 snakeForm.ShowDialog();
             }
@@ -51,6 +50,30 @@ namespace SnakeGameML.Implementation
             if (saveFileDialog1.ShowDialog() == DialogResult.OK)
             {
                 OutputTextBox.Text = saveFileDialog1.FileName;
+            }
+        }
+
+        private void StartPredict_Click(object sender, EventArgs e)
+        {
+            var snakeForm = new SnakeForm(new PredictionController(), new TrainingDataCollector(OutputTextBox.Text), 80);
+            snakeForm.ShowDialog();
+        }
+
+        private void PlayButton_Click(object sender, EventArgs e)
+        {
+            var parseResult = int.TryParse(GamesTextBox.Text, out int games);
+            if (!parseResult)
+            {
+                MessageBox.Show("Cannot parse games number");
+                return;
+            }
+
+            for (int i = 0; i < games - 1; i++)
+            {
+                GameCounterLabel.Text = $"{i}/{games - 1}";
+
+                var snakeForm = new SnakeForm(null, new TrainingDataCollector(OutputTextBox.Text), 100);
+                snakeForm.ShowDialog();
             }
         }
     }
